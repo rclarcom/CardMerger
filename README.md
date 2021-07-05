@@ -12,7 +12,7 @@ The tool requires a Python 3.7+ environment with the modules listed in `requirem
 Additionally, a directory containing appropriately named single card pdfs is required.  My recommendation is to purhcase the OGL cards from the link above, and extract
 the individual cards .rar archive into the project folder.
 
-An appopriate [card list](#Card-Lists) must be created for the pdf you want to create.
+An appropriate [card list](#Card-Lists) must be created for the pdf you want to create.
 
 ## Command Line Interface
 
