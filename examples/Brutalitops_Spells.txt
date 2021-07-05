@@ -1,0 +1,14 @@
+# Cantrips
+dancing lights
+minor illusion
+mage hand
+ray of frost
+
+# L1
+color spray
+detect magic
+grease
+identify
+mage armor
+shield
+

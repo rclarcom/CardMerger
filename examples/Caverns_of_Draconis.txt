@@ -1,0 +1,8 @@
+# Opponents
+Goblin
+Hobgoblin
+Young Green Dragon
+
+# Allies
+NPC Commoner
+Pegasus

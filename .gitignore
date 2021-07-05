@@ -1,0 +1,10 @@
+# IDE & venv files
+.idea
+venv
+__pycache__
+
+# Card files
+*.rar
+*.pdf
+DD_5e*
+CardLists
