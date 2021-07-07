@@ -5,6 +5,25 @@ A simple command line utility for merging multiple single page card pdfs into a 
 In particular, this tool is intended to help printing the excellent D&D 5th Edition [Spell Cards](https://www.drivethrurpg.com/product/173582/DD-5th-Edition-Spell-Cards) 
 and [Monster Cards](https://www.drivethrurpg.com/product/205572/DD-5th-Edition-Monster-Cards) by Matthew Perkins.
 
+<table>
+  <tr>
+<td> <pre>
+dancing lights
+minor illusion
+mage hand
+ray of frost
+color spray
+detect magic
+grease
+identify
+mage armor
+shield</pre>
+</td>
+    <td>&#8594;</td>
+    <td> <img src="./examples/Brutalitops_Spells_1.png" alt="Merged spells" width = 360px height = 465px></td>
+   </tr> 
+</table>
+
 ## Requirements
 
 The tool requires a Python 3.7+ environment with the modules listed in `requirements.txt`.
