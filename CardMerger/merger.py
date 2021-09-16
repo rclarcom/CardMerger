@@ -9,6 +9,7 @@ from enum import Enum
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import PyPDF2 as pdf
+import PyPDF2.generic
 
 logger = logging.getLogger(__name__)
 
@@ -103,14 +104,13 @@ def make_card_info(path_to_pdf: str) -> Optional[CardInfo]:
 
 @dataclass()
 class PageLayout:
-    paper_size: PaperSize
+    paper_size: Tuple[int, int]
     cards_per_page: int
     card_rows: int
     card_cols: int
     card_height: Decimal
     card_width: Decimal
     card_scale: Decimal
-    rotate_cards: bool
     left_margin: Decimal
     bottom_margin: Decimal
 
@@ -181,12 +181,12 @@ class CardMerger:
             / scaled_card_height
         )
 
-        # Evaluate with rotation
-        card_cols_landscape = int(
+        # Evaluate landscape paper layout
+        card_rows_landscape = int(
             (self.paper_size.value[0] - MIN_LEFT_MARGIN - MIN_RIGHT_MARGIN)
             / scaled_card_height
         )
-        card_rows_landscape = int(
+        card_cols_landscape = int(
             (self.paper_size.value[1] - MIN_TOP_MARGIN - MIN_BOTTOM_MARGIN)
             / scaled_card_width
         )
@@ -195,11 +195,11 @@ class CardMerger:
             card_cols_landscape * card_rows_landscape
             > card_cols_portrait * card_rows_portrait
         ):
-            rotate_cards = True
+            use_landscape = True
             card_cols = card_cols_landscape
             card_rows = card_rows_landscape
         else:
-            rotate_cards = False
+            use_landscape = False
             card_cols = card_cols_portrait
             card_rows = card_rows_portrait
 
@@ -211,22 +211,27 @@ class CardMerger:
             return None
 
         # Set margins to center cards on page
-        if rotate_cards:
-            excess_horizontal_margin = (
+        if use_landscape:
+            paper_size = (self.paper_size.value[1], self.paper_size.value[0])
+
+            excess_vertical_margin = (
                 self.paper_size.value[0]
                 - MIN_LEFT_MARGIN
                 - MIN_RIGHT_MARGIN
-                - scaled_card_height * card_cols
+                - scaled_card_height * card_rows
             )
-            left_margin = MIN_LEFT_MARGIN + excess_horizontal_margin / 2
-            excess_vertical_margin = (
+            bottom_margin = MIN_LEFT_MARGIN + excess_vertical_margin / 2
+
+            excess_horizontal_margin = (
                 self.paper_size.value[1]
                 - MIN_TOP_MARGIN
                 - MIN_BOTTOM_MARGIN
-                - scaled_card_width * card_rows
+                - scaled_card_width * card_cols
             )
-            bottom_margin = MIN_BOTTOM_MARGIN + excess_vertical_margin / 2
+            left_margin = MIN_TOP_MARGIN + excess_horizontal_margin / 2
         else:
+            paper_size = self.paper_size.value
+
             excess_horizontal_margin = (
                 self.paper_size.value[0]
                 - MIN_LEFT_MARGIN
@@ -243,14 +248,13 @@ class CardMerger:
             bottom_margin = MIN_BOTTOM_MARGIN + excess_vertical_margin / 2
 
         return PageLayout(
-            paper_size=self.paper_size,
+            paper_size=paper_size,
             cards_per_page=card_rows * card_cols,
             card_rows=card_rows,
             card_cols=card_cols,
             card_height=scaled_card_height,
             card_width=scaled_card_width,
             card_scale=self.card_scale,
-            rotate_cards=rotate_cards,
             left_margin=left_margin,
             bottom_margin=bottom_margin,
         )
@@ -325,23 +329,40 @@ class CardMerger:
 
                 if page_position == 0:
                     current_page = pdf_writer.addBlankPage(
-                        width=page_layout.paper_size.value[0],
-                        height=page_layout.paper_size.value[1],
+                        width=page_layout.paper_size[0],
+                        height=page_layout.paper_size[1],
                     )
 
                 card_page = pdf.PdfFileReader(open(card.path_to_pdf, "rb")).getPage(0)
 
-                if page_layout.rotate_cards:
-                    tx = page_layout.left_margin + col_no * page_layout.card_height
-                    ty = (
-                        page_layout.bottom_margin
-                        + (row_no + 1) * page_layout.card_width
-                    )
-                    rotation = -90
-                else:
-                    tx = page_layout.left_margin + col_no * page_layout.card_width
-                    ty = page_layout.bottom_margin + row_no * page_layout.card_height
-                    rotation = 0
+                tx = page_layout.left_margin + col_no * page_layout.card_width
+                ty = page_layout.bottom_margin + row_no * page_layout.card_height
+                rotation = 0
+
+                # Fix offsets of any annotations (Generating new cards from editable templates creates annotations)
+                if "/Annots" in card_page:
+                    for annot_indirect in card_page.get("/Annots").getObject():
+                        annot = annot_indirect.getObject()
+                        if "/Rect" in annot:
+                            bounding_rect = annot["/Rect"].getObject()
+
+                            annot.update(
+                                {
+                                    PyPDF2.generic.NameObject(
+                                        "/Open"
+                                    ): PyPDF2.generic.BooleanObject(False),
+                                    PyPDF2.generic.NameObject(
+                                        "/Rect"
+                                    ): PyPDF2.generic.RectangleObject(
+                                        [
+                                            bounding_rect[0]*page_layout.card_scale + tx,
+                                            bounding_rect[1]*page_layout.card_scale + ty,
+                                            bounding_rect[2]*page_layout.card_scale + tx,
+                                            bounding_rect[3]*page_layout.card_scale + ty,
+                                        ]
+                                    ),
+                                }
+                            )
 
                 current_page.mergeRotatedScaledTranslatedPage(
                     card_page,
