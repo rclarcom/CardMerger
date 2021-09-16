@@ -355,10 +355,10 @@ class CardMerger:
                                         "/Rect"
                                     ): PyPDF2.generic.RectangleObject(
                                         [
-                                            bounding_rect[0] + tx,
-                                            bounding_rect[1] + ty,
-                                            bounding_rect[2] + tx,
-                                            bounding_rect[3] + ty,
+                                            bounding_rect[0]*page_layout.card_scale + tx,
+                                            bounding_rect[1]*page_layout.card_scale + ty,
+                                            bounding_rect[2]*page_layout.card_scale + tx,
+                                            bounding_rect[3]*page_layout.card_scale + ty,
                                         ]
                                     ),
                                 }
